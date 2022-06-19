@@ -18,16 +18,26 @@ import sys
 
 class ImageRecognizingNode(Node):
 
-    def __init__(self, mode=0):
+    def __init__(self, mode=0, network_type=0):
         super().__init__('image_recognizing_node')
 
         # VARIABLES
-        self.model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
         self.bridge = CvBridge()
         self.mode = int(mode)
+        self.network_type = int(network_type)
         self.image_id = 0
         self.image_format = ".jpg"
         self.isSavingNeeded = False
+
+        # NETWORK
+        match self.network_type:
+            case 0:  # default
+                self.model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
+            case 1:  # custom
+                self.model = torch.hub.load(
+                    'ultralytics/yolov5', 'custom', path='/home/black_wraith/dev_ws/dataBase/custom_yolov5.pt')
+            case _:
+                self.model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
 
         # SUBSCRIBER
         subscribed_image_topic = "/camera/image_raw"
@@ -56,6 +66,9 @@ class ImageRecognizingNode(Node):
 
             case 1:  # Continuous Publisher Mode
                 self.publish_image()
+
+            case _:  # Default
+                self.save_image()
 
     def analyze_image(self, image_raw_msg):
         cv2_img = self.bridge.imgmsg_to_cv2(image_raw_msg, "bgr8")
@@ -109,7 +122,17 @@ class ImageRecognizingNode(Node):
         return str(self.image_id) + self.image_format
 
     def print_initialization_status(self):
-        print("INFO >> ImageRecognizingNode - constructed")
+        print("INFO >> ImageRecognizingNode - Constructed")
+
+        match self.network_type:
+            case 0:  # default
+                print("INFO >> ImageRecognizingNode - Using default yolov5s network")
+            case 1:  # custom
+                print("INFO >> ImageRecognizingNode - Using custom yolov5s network")
+            case _:
+                print(
+                    "WRN >> ImageRecognizingNode - INCORRECT NETWORK ID - Using default yolov5s network")
+
         match self.mode:
             case 0:  # OnDemandMode
                 print("INFO >> ImageRecognizingNode - OnDemand Saving Mode")
@@ -119,16 +142,23 @@ class ImageRecognizingNode(Node):
                 print("INFO >> ImageRecognizingNode - Continuous Publisher Mode")
 
             case _:
-                print("INFO >> ImageRecognizingNode - UnknownMode = ", self.mode)
+                print("INFO >> ImageRecognizingNode - UnknownMode = ",
+                      self.mode, " - using default OnDemand Saving Mode")
 
 
 def main(args=None):
 
     rclpy.init(args=args)
-    if len(sys.argv) == 1:
-        image_subscriber = ImageRecognizingNode()
-    else:
-        image_subscriber = ImageRecognizingNode(sys.argv[1])
+    match len(sys.argv):
+        case 1:
+            image_subscriber = ImageRecognizingNode()
+        case 2:
+            image_subscriber = ImageRecognizingNode(sys.argv[1])
+        case 3:
+            image_subscriber = ImageRecognizingNode(sys.argv[1], sys.argv[2])
+        case _:
+            print("ERROR >> ImageRecognizingNode - TOO MANY ARGUMENTS   ")
+            return
 
     rclpy.spin(image_subscriber)
     image_subscriber.destroy_node()

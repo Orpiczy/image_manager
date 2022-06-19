@@ -64,8 +64,7 @@ class ImageSavingNode(Node):
 
                 if(not os.path.exists(str(smaller_id) + self.image_format)):
                     self.image_id = smaller_id
-
-        return str(self.image_id) + self.image_format
+            'testing_node_talker = image_manager.publisher_member_function:main',
 
 
 def main(args=None):

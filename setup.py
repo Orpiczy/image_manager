@@ -20,7 +20,6 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'testing_node_talker = image_manager.publisher_member_function:main',
             'image_saving_node = image_manager.image_saving_node:main',
             'image_recognizing_node = image_manager.image_recognizing_node:main',
         ],
